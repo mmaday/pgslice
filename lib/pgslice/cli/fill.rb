@@ -8,6 +8,7 @@ module PgSlice
     option :start, type: :numeric, desc: "Primary key to start"
     option :where, desc: "Conditions to filter"
     option :sleep, type: :numeric, desc: "Seconds to sleep between batches"
+    option :tw_site, type: :boolean, default: false, desc: "Force swap site_id with tw_site_id"
     def fill(table)
       table = create_table(table)
       source_table = create_table(options[:source_table]) if options[:source_table]
@@ -25,6 +26,7 @@ module PgSlice
       assert_table(dest_table)
 
       period, field, cast, _, declarative, version, tw_site = dest_table.fetch_settings(table.trigger_name)
+      tw_site ||= options[:tw_site]
 
       if period
         name_format = self.name_format(period)
