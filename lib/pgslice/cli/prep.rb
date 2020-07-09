@@ -47,7 +47,7 @@ CREATE TABLE #{quote_table(intermediate_table)} (LIKE #{quote_table(table)} INCL
         if version == 3
           if options[:tw_site]
             queries << <<-SQL
-    ALTER TABLE #{quote_table(intermediate_table)} RENAME COLUMN site_id TO tw_site_id;
+ALTER TABLE #{quote_table(intermediate_table)} RENAME COLUMN site_id TO tw_site_id;
             SQL
           end
 
@@ -72,8 +72,14 @@ COMMENT ON TABLE #{quote_table(intermediate_table)} is 'column:#{column},period:
 CREATE TABLE #{quote_table(intermediate_table)} (LIKE #{quote_table(table)} INCLUDING ALL);
         SQL
 
+        if options[:tw_site]
+          queries << <<-SQL
+ALTER TABLE #{quote_table(intermediate_table)} RENAME COLUMN site_id TO tw_site_id;
+          SQL
+        end
+
         table.foreign_keys.each do |fk_def|
-          queries << make_fk_def(fk_def, intermediate_table)
+          queries << make_fk_def(fk_def, intermediate_table, options[:tw_site])
         end
       end
 
