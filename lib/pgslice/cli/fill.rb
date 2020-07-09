@@ -75,7 +75,7 @@ module PgSlice
         log_sql "/* nothing to fill */"
       end
 
-      tw_site_join = tw_site ? "JOIN sites_to_tag_wrap_sites sttws ON #{quote_table(source_table)}.site_id = sttws.tw_site_id" : ""
+      tw_site_join = tw_site ? "JOIN sites_to_tag_wrap_sites sttws ON #{quote_table(source_table)}.site_id = sttws.site_id" : ""
 
       while starting_id < max_source_id
         where = "#{quote_ident(primary_key)} > #{starting_id} AND #{quote_ident(primary_key)} <= #{starting_id + batch_size}"
