@@ -76,6 +76,7 @@ module PgSlice
       end
 
       tw_site_join = tw_site ? "LEFT JOIN sites_to_tag_wrap_sites sttws ON #{quote_table(source_table)}.site_id = sttws.site_id" : ""
+      source_fields = tw_site ? fields.sub(/"created_time"/i, "#{quote_table(source_table)}.created_time") : fields
 
       while starting_id < max_source_id
         where = "#{quote_ident(primary_key)} > #{starting_id} AND #{quote_ident(primary_key)} <= #{starting_id + batch_size}"
@@ -88,9 +89,8 @@ module PgSlice
 
         query = <<-SQL
 /* #{i} of #{batch_count} */
-/* tw_site_join */
 INSERT INTO #{quote_table(dest_table)} (#{fields})
-    SELECT #{fields} FROM #{quote_table(source_table)} #{tw_site_join}
+    SELECT #{source_fields} FROM #{quote_table(source_table)} #{tw_site_join}
     WHERE #{where}
         SQL
 

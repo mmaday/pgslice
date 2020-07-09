@@ -95,6 +95,7 @@ CREATE TABLE tw_monitored (
   domain text NOT NULL,
   file_key TEXT NOT NULL,
   place INT NOT NULL,
+  created_time TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
   CONSTRAINT tw_monitored_unique UNIQUE (site_id, hour, device, browser, file_key, domain)
 );
 
