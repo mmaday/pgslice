@@ -78,6 +78,7 @@ ALTER TABLE #{quote_table(intermediate_table)} RENAME COLUMN site_id TO tw_site_
           SQL
         end
 
+        # TODO no comment tw_site fill will not work
         table.foreign_keys.each do |fk_def|
           queries << make_fk_def(fk_def, intermediate_table, options[:tw_site])
         end
