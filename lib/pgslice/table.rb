@@ -141,11 +141,13 @@ module PgSlice
     # legacy
     def fetch_settings(trigger_name)
       needs_comment = false
+      tw_site = false
       trigger_comment = fetch_trigger(trigger_name)
       comment = trigger_comment || fetch_comment
       if comment
-        field, period, cast, version = comment["comment"].split(",").map { |v| v.split(":").last } rescue []
+        field, period, cast, version, tw_site = comment["comment"].split(",").map { |v| v.split(":").last } rescue []
         version = version.to_i if version
+        tw_site = tw_site.downcase == "true" if tw_site
       end
 
       unless period
@@ -169,7 +171,7 @@ module PgSlice
       version ||= trigger_comment ? 1 : 2
       declarative = version > 1
 
-      [period, field, cast, needs_comment, declarative, version]
+      [period, field, cast, needs_comment, declarative, version, tw_site]
     end
 
     protected

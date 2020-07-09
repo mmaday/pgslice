@@ -15,7 +15,8 @@ module PgSlice
       past = options[:past]
       range = (-1 * past)..future
 
-      period, field, cast, needs_comment, declarative, version = table.fetch_settings(original_table.trigger_name)
+      period, field, cast, needs_comment, declarative, version, tw_site = table.fetch_settings(original_table.trigger_name)
+
       unless period
         message = "No settings found: #{table}"
         message = "#{message}\nDid you mean to use --intermediate?" unless options[:intermediate]
@@ -25,7 +26,7 @@ module PgSlice
       queries = []
 
       if needs_comment
-        queries << "COMMENT ON TRIGGER #{quote_ident(trigger_name)} ON #{quote_table(table)} is 'column:#{field},period:#{period},cast:#{cast}';"
+        queries << "COMMENT ON TRIGGER #{quote_ident(trigger_name)} ON #{quote_table(table)} is 'column:#{field},period:#{period},cast:#{cast},tw_site:#{tw_site}';"
       end
 
       # today = utc date

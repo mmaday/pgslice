@@ -37,6 +37,44 @@ class PgSliceTest < Minitest::Test
   def test_trigger_based_timestamptz
     assert_period "month", trigger_based: true, column: "createdAtTz"
   end
+  
+  def test_tw_site
+    run_command "prep tw_monitored hour month --tw-site"
+    run_command "add_partitions tw_monitored --intermediate --past 7 --future 1"
+    now = Time.now.utc
+    time_format = "%Y%m"
+    partition_name = "tw_monitored_#{now.strftime(time_format)}"
+
+    result = $conn.exec <<-SQL
+      SELECT pg_get_constraintdef(oid) AS def
+      FROM pg_constraint
+      WHERE contype = 'f' AND conrelid = '"#{partition_name}"'::regclass
+    SQL
+    assert !result.detect { |row| row["def"] =~ /\AFOREIGN KEY \(.*\) REFERENCES tag_wrap_sites\(id\)\z/ }.nil?, "Missing foreign key on #{partition_name}"
+
+    run_command "fill tw_monitored"
+    rs = $conn.exec <<-SQL
+      SELECT count(*) AS cnt
+      FROM tw_monitored_intermediate;
+    SQL
+    cnt = (rs.getvalue 0, 0).to_i
+    print "tw_monitored_intermediate rows; #{cnt}"
+    assert cnt > 0, "No rows in tw_monitored_intermediate"
+
+    run_command "analyze tw_monitored"
+    
+    $conn.exec <<-SQL
+    INSERT INTO tw_monitored (site_id, hour, device, browser, domain, file_key, place)
+SELECT 1, GENERATE_SERIES(DATE_TRUNC('hour', NOW() - '12 hours'::interval), date_trunc('hour', NOW()), '1 hour'),
+'Mac OS X', 'Chrome', 'example.com', 'key123', 50;
+    SQL
+
+    run_command "swap tw_monitored"
+
+    run_command "fill tw_monitored --swapped"
+
+    assert true
+  end
 
   private
 

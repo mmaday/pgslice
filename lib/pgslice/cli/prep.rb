@@ -3,6 +3,7 @@ module PgSlice
     desc "prep TABLE [COLUMN] [PERIOD]", "Create an intermediate table for partitioning"
     option :partition, type: :boolean, default: true, desc: "Partition the table"
     option :trigger_based, type: :boolean, default: false, desc: "Use trigger-based partitioning"
+    option :tw_site, type: :boolean, default: false, desc: "Swap site_id with tw_site_id"
     def prep(table, column=nil, period=nil)
       table = create_table(table)
       intermediate_table = table.intermediate_table
@@ -36,28 +37,35 @@ module PgSlice
           3
         end
 
-      declarative = version > 1
-
+      declarative = version > 1      
+      
       if declarative && options[:partition]
         queries << <<-SQL
 CREATE TABLE #{quote_table(intermediate_table)} (LIKE #{quote_table(table)} INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING STORAGE INCLUDING COMMENTS) PARTITION BY RANGE (#{quote_ident(column)});
         SQL
 
         if version == 3
+          if options[:tw_site]
+            queries << <<-SQL
+    ALTER TABLE #{quote_table(intermediate_table)} RENAME COLUMN site_id TO tw_site_id;
+            SQL
+          end
+
+          # ALTER TABLE "public"."tw_monitored_intermediate" ADD FOREIGN KEY (site_id) REFERENCES sites(id);
           index_defs = table.index_defs
           index_defs.each do |index_def|
-            queries << make_index_def(index_def, intermediate_table)
+            queries << make_index_def(index_def, intermediate_table, options[:tw_site])
           end
 
           table.foreign_keys.each do |fk_def|
-            queries << make_fk_def(fk_def, intermediate_table)
+            queries << make_fk_def(fk_def, intermediate_table, options[:tw_site])
           end
         end
 
         # add comment
         cast = table.column_cast(column)
         queries << <<-SQL
-COMMENT ON TABLE #{quote_table(intermediate_table)} is 'column:#{column},period:#{period},cast:#{cast},version:#{version}';
+COMMENT ON TABLE #{quote_table(intermediate_table)} is 'column:#{column},period:#{period},cast:#{cast},version:#{version},tw_site:#{options[:tw_site]}';
         SQL
       else
         queries << <<-SQL
@@ -87,7 +95,7 @@ CREATE TRIGGER #{quote_ident(trigger_name)}
 
         cast = table.column_cast(column)
         queries << <<-SQL
-COMMENT ON TRIGGER #{quote_ident(trigger_name)} ON #{quote_table(intermediate_table)} is 'column:#{column},period:#{period},cast:#{cast}';
+COMMENT ON TRIGGER #{quote_ident(trigger_name)} ON #{quote_table(intermediate_table)} is 'column:#{column},period:#{period},cast:#{cast},tw_site:#{options[:tw_site]}';
         SQL
       end
 

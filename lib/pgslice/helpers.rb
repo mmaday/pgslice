@@ -165,12 +165,20 @@ module PgSlice
       Table.new(schema, name)
     end
 
-    def make_index_def(index_def, table)
-      index_def.sub(/ ON \S+ USING /, " ON #{quote_table(table)} USING ").sub(/ INDEX .+ ON /, " INDEX ON ") + ";"
+    def make_index_def(index_def, table, tw_site = false)
+      new_index_def = index_def.sub(/ ON \S+ USING /, " ON #{quote_table(table)} USING ").sub(/ INDEX .+ ON /, " INDEX ON ") + ";"
+      if tw_site
+        new_index_def = new_index_def.gsub(/\bsite_id\b/i, "tw_site_id")
+      end
+      new_index_def
     end
 
-    def make_fk_def(fk_def, table)
-      "ALTER TABLE #{quote_table(table)} ADD #{fk_def};"
+    def make_fk_def(fk_def, table, tw_site = false)
+      new_fk_def = "ALTER TABLE #{quote_table(table)} ADD #{fk_def};"
+      if tw_site
+        new_fk_def = new_fk_def.sub(/\bsite_id/i, "tw_site_id").sub(/\bsites\b/i, "tag_wrap_sites")
+      end
+      new_fk_def
     end
   end
 end

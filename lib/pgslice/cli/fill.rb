@@ -24,7 +24,7 @@ module PgSlice
       assert_table(source_table)
       assert_table(dest_table)
 
-      period, field, cast, _, declarative, _ = dest_table.fetch_settings(table.trigger_name)
+      period, field, cast, _, declarative, version, tw_site = dest_table.fetch_settings(table.trigger_name)
 
       if period
         name_format = self.name_format(period)
@@ -64,6 +64,8 @@ module PgSlice
 
       starting_id = max_dest_id
       fields = source_table.columns.map { |c| quote_ident(c) }.join(", ")
+      fields = fields.sub(/"site_id\"/i, "\"tw_site_id\"") if tw_site
+      
       batch_size = options[:batch_size]
 
       i = 1
@@ -72,6 +74,8 @@ module PgSlice
       if batch_count == 0
         log_sql "/* nothing to fill */"
       end
+
+      tw_site_join = tw_site ? "JOIN sites_to_tag_wrap_sites sttws ON #{quote_table(source_table)}.site_id = sttws.tw_site_id" : ""
 
       while starting_id < max_source_id
         where = "#{quote_ident(primary_key)} > #{starting_id} AND #{quote_ident(primary_key)} <= #{starting_id + batch_size}"
@@ -84,8 +88,9 @@ module PgSlice
 
         query = <<-SQL
 /* #{i} of #{batch_count} */
+/* tw_site_join */
 INSERT INTO #{quote_table(dest_table)} (#{fields})
-    SELECT #{fields} FROM #{quote_table(source_table)}
+    SELECT #{fields} FROM #{quote_table(source_table)} #{tw_site_join}
     WHERE #{where}
         SQL
 
