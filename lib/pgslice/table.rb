@@ -77,11 +77,11 @@ module PgSlice
     end
 
     def intermediate_table
-      self.class.new(schema, "#{name}_intermediate")
+      self.class.new(schema, "#{name}_intermediate"[0, 63])
     end
 
     def retired_table
-      self.class.new(schema, "#{name}_retired")
+      self.class.new(schema, "#{name}_retired"[0, 63])
     end
 
     def trigger_name
